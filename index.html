@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQTT Light Control</title>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+      body {
+          text-align: center;
+          font-family: Arial, sans-serif;
+          background-color: #222;
+          color: white;
+      }
+
+      .light-container {
+          position: relative;
+          display: inline-block;
+          margin-top: 50px;
+      }
+
+      /* Bulb Design */
+      .bulb {
+          width: 100px;
+          height: 200px;
+          background: linear-gradient(to bottom, #555, #333);
+          border-radius: 50% 50% 10% 10%;
+          position: relative;
+          transition: background 0.3s, box-shadow 0.3s;
+          margin: 0 auto;
+      }
+
+      .bulb.on {
+          background: linear-gradient(to bottom, #ffff00, #ffa500);
+          box-shadow: 0 0 50px rgba(255, 255, 0, 0.9);
+      }
+
+      /* Filament */
+      .filament {
+          width: 8px;
+          height: 60px;
+          background: #222;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          transition: background 0.3s;
+      }
+
+      .bulb.on .filament {
+          background: orange;
+      }
+
+      /* Bulb Base */
+      .base {
+          width: 60px;
+          height: 40px;
+          background: gray;
+          position: absolute;
+          bottom: -40px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-radius: 5px;
+      }
+
+      /* Hanging String */
+      .hanging-string {
+          width: 2px;
+          height: 200px;
+          background: #555;
+          position: absolute;
+          top: -200px;
+          left: 50%;
+          transform: translateX(-50%);
+      }
+
+      .brightness-slider {
+          display: none;
+          margin-top: 10px;
+      }
+
+      /* Buttons */
+      button {
+          background: gray;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          margin: 10px;
+          cursor: pointer;
+          font-size: 16px;
+          border-radius: 5px;
+      }
+
+      button:hover {
+          background: lightgray;
+          color: black;
+      }
+  </style>
+</head>
+<body>
+  <h2>MQTT Light Control</h2>
+  
+  <div class="light-container">
+      <div class="hanging-string"></div>
+      <div id="bulb" class="bulb">
+          <div class="filament"></div>
+          <div class="base"></div>
+      </div>
+  </div>
+
+  <br>
+  <button onclick="sendCommand('ON')">Turn ON</button>
+  <button onclick="sendCommand('OFF')">Turn OFF</button>
+
+  <p id="status">Last command: None</p>
+
+  <input type="range" id="brightness" class="brightness-slider" min="10" max="100" value="100" 
+         oninput="adjustBrightness(this.value)">
+  <p id="brightness-value" class="brightness-slider">Brightness: 100%</p>
+
+  <script>
+      const broker = "wss://test.mosquitto.org:8081";
+      const topic = "/student_group/light_control";
+      const client = mqtt.connect(broker);
+
+      client.on("connect", () => console.log("Connected to MQTT broker"));
+
+      function sendCommand(command) {
+          client.publish(topic, command);
+          document.getElementById("status").innerText = `Last command: ${command}`;
+          
+          const bulb = document.getElementById("bulb");
+          const slider = document.getElementById("brightness");
+          const brightnessText = document.getElementById("brightness-value");
+
+          if (command === "ON") {
+              bulb.classList.add("on");
+              slider.style.display = "block";
+              brightnessText.style.display = "block";
+          } else {
+              bulb.classList.remove("on");
+              slider.style.display = "none";
+              brightnessText.style.display = "none";
+          }
+      }
+
+      function adjustBrightness(value) {
+          client.publish(topic, `BRIGHTNESS:${value}`);
+          document.getElementById("brightness-value").innerText = `Brightness: ${value}%`;
+          document.getElementById("bulb").style.boxShadow = `0 0 ${value / 2}px rgba(255, 255, 0, 0.8)`;
+      }
+  </script>
+</body>
+</html>
